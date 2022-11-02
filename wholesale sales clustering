@@ -1,0 +1,165 @@
+##1. Conducting a clustering using the *k*-means method
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+data = pd.read_csv('./data/wholesale.csv')
+
+#checking data
+
+data.dtypes
+
+# dropping the customer_id column because we dont want it in our clusters
+
+data2 = data[data.columns.drop('Customer_ID')]
+data2.head()
+
+##1) Creating five clusters (random decision)
+#Standardizing the feature matrix:
+
+from sklearn.preprocessing import StandardScaler
+
+#istantiate
+scaler = StandardScaler()
+
+data_scaled =scaler.fit_transform(data2)
+data_scaled = pd.DataFrame(data = data_scaled,columns = data2.columns)
+
+#checking the standardized dataframe
+
+data_scaled.head()
+
+#Plot to check the standardized feature
+plt.figure(figsize= (15,5))
+plt.scatter(x ='Fresh', y = 'Frozen', data = data_scaled)
+
+plt.xlabel('Expenditure on Fresh food',fontsize =15)
+plt.ylabel('Expenditure on Frozen food',fontsize =15)
+
+plt.title('Spendings on fresh vs Frozen food(standardized feature)',fontsize =20)
+plt.show()
+
+# Clustering
+
+from sklearn.cluster import KMeans
+
+kmeans = KMeans(n_clusters =  5,init = 'random',n_init =  1,random_state =66)
+kmeans.fit(data_scaled)
+
+kmeans.labels_
+
+##A scatter plot of spendings in fresh vs. frozen products. Show the clustering solution using marker colors.
+plt.figure(figsize= (15,10))
+plt.scatter(x= 'Fresh',y = 'Frozen', data = data_scaled, c = kmeans.labels_, s= 50, alpha =.5)
+plt.xlabel('Expenditure on Fresh food',fontsize =20)
+plt.ylabel('Expenditure on Frozen food',fontsize =20)
+
+plt.title('Spendings on fresh vs Frozen food (Clusters)',fontsize =25)
+plt.show()
+
+#Adding the converged cluster centroids onto the above plot. Make sure to use a different marker type, so it's easy to distinguish them from other data points.
+plt.figure(figsize= (15,10))
+plt.scatter(x= 'Fresh',y = 'Frozen', data = data_scaled, c = kmeans.labels_, s= 50, alpha =.5)
+plt.xlabel('Expenditure on Fresh food',fontsize =20)
+plt.ylabel('Expenditure on Frozen food',fontsize =20)
+
+
+centroids = kmeans.cluster_centers_
+plt.scatter(centroids[:, 0],centroids[:,3], c = 'red', s= 240, alpha =.5, marker = '*')
+plt.title('Spendings on fresh vs Frozen food',fontsize =25)
+plt.show()
+
+#Number of iterations this data took to converge
+kmeans.n_iter_
+
+#The inertia for this clustering solution
+kmeans.inertia_
+
+# 2) Finding the best value for the number of clusters k using the elbow method. For a specific k value, run the k-means algorithm for 30 runs with different seeds. 
+Using the default method for initializing the seeds.
+
+inertia =[] #inertia corresponsing to each k
+for k in range(1,10):
+    kmeans = KMeans(n_clusters =k, n_init =  30, init = 'k-means++' , random_state =66).fit(data_scaled)
+    inertia.append([k,kmeans.inertia_])
+
+#plotting the inertia for ks
+
+plt.figure(figsize =(10,10))
+plt.plot(pd.DataFrame(inertia)[0],pd.DataFrame(inertia)[1], marker = 'o')
+plt.title('The inertia plot for each k', fontsize =25)
+
+plt.xlabel('k', fontsize =20)
+plt.ylabel('intertia at k', fontsize =20)
+
+plt.show()
+
+# Answer: The best value of k according to the elbow method looks to be k=2. 
+This is because after k=2 the reduction in inertia with every new k value is much lesser than the reduction in inertia between k=1 and k=2.
+
+#3) Now finding the best value for the number of clusters k using the silhouette analysis. 
+from sklearn.metrics import silhouette_score
+silhouette = []
+
+for k in range(2,15): 
+    kmeans = KMeans(n_clusters =k, random_state =66).fit(data_scaled) 
+    silhouette.append([k,silhouette_score(data_scaled,kmeans.labels_)])
+#plotting the silhouette_score for ks
+plt.figure(figsize =(10,10))
+plt.plot(pd.DataFrame(silhouette)[0],pd.DataFrame(silhouette)[1], marker = 'o')
+plt.title('The silhouette score plot', fontsize =25)
+
+plt.xlabel('k', fontsize =20)
+plt.ylabel('silhouette score at k', fontsize =20)
+
+plt.show()
+
+#Answer: Silhoutte score is the highest at k=2. This means that the best value of k for this clustering solution is is 2. Same as elbow method.
+
+#4) Application Constraint: Marketing team wants to have at least 3 versions of advertising, but cannot afford to have more than 7 versions.
+With this constraint, what is the best value of k? 
+
+#Using elbow method
+inertia2 =[] #inertia corresponsing to each k
+for k in range(3,8):
+    kmeans = KMeans(n_clusters =k, n_init =  30, init = 'k-means++' , random_state =66).fit(data_scaled)
+    inertia2.append([k,kmeans.inertia_])
+
+##plotting the inertia for ks
+
+plt.figure(figsize =(10,5))
+plt.plot(pd.DataFrame(inertia2)[0],pd.DataFrame(inertia2)[1], marker = 'o')
+plt.title('The inertia plot for each k', fontsize =25)
+
+plt.xlabel('k', fontsize =20)
+plt.ylabel('intertia at k', fontsize =20)
+
+plt.show()
+
+#Answer: By elbow method, it can be said by looking at the inertia plot, that if the constraint of k being between 3 and 7 is applied, then the best value of k is 4.
+This is because after k=4 the reduction in inertia with every new k value is lesser than the reduction in inertia between k=3 and k=4.
+
+silhouette1 = []
+
+for k in range(3,8): 
+    kmeans = KMeans(n_clusters =k,n_init =  30, init = 'k-means++' , random_state =66).fit(data_scaled) 
+    silhouette1.append([k,silhouette_score(data_scaled,kmeans.labels_)])
+    
+#plotting the silhouette_score for ks
+plt.figure(figsize =(10,10))
+plt.plot(pd.DataFrame(silhouette1)[0],pd.DataFrame(silhouette1)[1], marker = 'o')
+plt.title('The silhouette score plot', fontsize =25)
+
+plt.xlabel('k', fontsize =20)
+plt.ylabel('silhouette score at k', fontsize =20)
+
+plt.show()
+
+## Answer: By silhoutte score method, it can be said by looking at the plot above, that if the constraint of k being between 3 and 7 is applied, then the best value of k is 4.
+Because the silhouette score is highest at k=4.
+
+
+
+
+
